@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>EA License Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+      body { font-family: sans-serif; background: #f8f8f8; margin: 0; padding: 1rem; }
+      .container { max-width: 600px; margin: auto; background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+      h2 { text-align: center; }
+      .license { border: 1px solid #ccc; padding: 1rem; margin-bottom: 1rem; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; }
+      .toggle { background: #0070f3; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; }
+      .toggle.inactive { background: #999; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>EA Dashboard</h2>
+      <div id="licenses">Loading licenses...</div>
+    </div>
+
+    <script type="module">
+      const SUPABASE_URL = "https://wxowruwuvqfxqjtjrocf.supabase.co";
+      const SERVICE_ROLE_KEY = "PASTE_YOUR_SERVICE_ROLE_KEY_HERE";
+
+      import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
+
+      const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
+
+      async function loadLicenses() {
+        const container = document.getElementById("licenses");
+        const { data, error } = await supabase.from("licenses").select("*").order("created_at", { ascending: false });
+
+        if (error) {
+          container.textContent = "Error loading licenses";
+          return;
+        }
+
+        container.innerHTML = "";
+
+        data.forEach((license) => {
+          const div = document.createElement("div");
+          div.className = "license";
+          div.innerHTML = `
+            <div>
+              <strong>${license.license_key}</strong><br />
+              ${license.mt_account || "No Account"}<br />
+              Status: ${license.is_active ? "🟢 Active" : "⛔ Paused"}
+            </div>
+            <button class="toggle ${license.is_active ? "" : "inactive"}" onclick="toggleStatus('${license.id}', ${!license.is_active})">
+              ${license.is_active ? "Pause" : "Resume"}
+            </button>
+          `;
+          container.appendChild(div);
+        });
+      }
+
+      window.toggleStatus = async (id, newStatus) => {
+        await supabase.from("licenses").update({ is_active: newStatus }).eq("id", id);
+        loadLicenses();
+      };
+
+      loadLicenses();
+    </script>
+  </body>
+</html>
